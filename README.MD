@@ -39,3 +39,34 @@ A web-based machine learning application that recognizes handwritten digits usin
 git clone https://github.com/NgChau9803/ATI
 cd ATI
 ```
+
+### 2. Create a Virtual Environment
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+### 3. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Run the main.py to download the dataset and train the model
+
+```bash
+python main.py
+```
+
+### 5. Run the app.py to start the web application
+
+```bash
+python app.py
+```
+
+## Usage
+
+1. Open the web application in your browser.
+2. Draw a digit on the canvas.
+3. Click on the "Predict" button to get the predicted digit.
