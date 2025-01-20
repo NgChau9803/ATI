@@ -31,7 +31,7 @@ A web-based machine learning application that recognizes handwritten digits usin
 - pip
 - Virtual Environment (recommended)
 
-## Installation
+## Unix Installation
 
 ### 1. Clone the Repository
 
@@ -64,6 +64,53 @@ python main.py
 ```bash
 python app.py
 ```
+
+
+### Windows Installation
+
+#### Prerequisites
+- Windows 10 or Windows 11
+- Python 3.8+ (64-bit version recommended)
+- Git for Windows
+- Microsoft Visual C++ Redistributable
+
+#### Installation Steps
+
+1. **Install Python**
+   - Download Python from the [official website](https://www.python.org/downloads/windows/)
+   - During installation, ensure to check "Add Python to PATH"
+   - Verify installation by opening Command Prompt and running:
+     ```cmd
+     python --version
+     pip --version
+     ```
+
+2. **Clone the Repository**
+   ```cmd
+   git clone https://github.com/NgChau9803/ATI
+   cd ATI
+
+3. **Create a Virtual Environment**
+   ```cmd
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+4. **Install Dependencies**
+   ```cmd
+   pip install -r requirements.txt
+   ```
+
+5. **Run the main.py to download the dataset and train the model**
+   ```cmd
+   python main.py
+   ```
+
+6. **Run the app.py to start the web application**
+   ```cmd
+   python app.py
+   ```
+
 
 ## Usage
 
