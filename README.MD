@@ -93,7 +93,7 @@ python app.py
 3. **Create a Virtual Environment**
    ```cmd
    python3 -m venv venv
-   source venv/bin/activate
+   venv/Scripts/Activate
    ```
 
 4. **Install Dependencies**
