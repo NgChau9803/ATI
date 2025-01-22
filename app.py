@@ -7,6 +7,8 @@ from PIL import Image
 import io
 import os
 import cv2
+import matplotlib
+matplotlib.use('Agg') 
 import matplotlib.pyplot as plt
 
 app = Flask(__name__)
@@ -40,7 +42,6 @@ def preprocess_image(image_base64):
         image = Image.open(io.BytesIO(image_bytes)).convert('L')
     except Exception as e:
         print(f"Image Opening Error: {e}")
-        # Save the problematic base64 for debugging
         with open('debug/problematic_base64.txt', 'w') as f:
             f.write(image_base64)
         raise
@@ -62,54 +63,13 @@ def preprocess_image(image_base64):
     # Resize to 28x28
     image = image.resize((28, 28), Image.LANCZOS)
     
-    # Convert to numpy array
-    image_array = np.array(image, dtype=np.float32)
+    # Convert to numpy array and invert (white digit on black background)
+    image_array = 255 - np.array(image, dtype=np.float32)
     
-    # Detailed preprocessing visualization
-    plt.figure(figsize=(15, 5))
-    
-    # Original grayscale
-    plt.subplot(1, 4, 1)
-    plt.title('Original Grayscale')
-    plt.imshow(image_array, cmap='gray')
-    plt.axis('off')
-    
-    # Invert grayscale
-    inverted = 255 - image_array
-    plt.subplot(1, 4, 2)
-    plt.title('Inverted')
-    plt.imshow(inverted, cmap='gray')
-    plt.axis('off')
-    
-    # Adaptive thresholding
-    thresholded = cv2.adaptiveThreshold(
-        inverted.astype(np.uint8), 255, 
-        cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
-        cv2.THRESH_BINARY, 11, 2
-    )
-    plt.subplot(1, 4, 3)
-    plt.title('Adaptive Threshold')
-    plt.imshow(thresholded, cmap='gray')
-    plt.axis('off')
-    
-    # Normalize
-    normalized = (thresholded / 255.0 - 0.1307) / 0.3081
-    plt.subplot(1, 4, 4)
-    plt.title('Normalized')
-    plt.imshow(normalized.reshape(28, 28), cmap='gray')
-    plt.axis('off')
-    
-    plt.tight_layout()
-    plt.savefig('debug/preprocessing_steps.png')
-    plt.close()
-    
-    # Use thresholded image for further processing
-    image_array = thresholded
-    
-    # Normalize
+    # Normalize using MNIST parameters (same as training)
     image_array = (image_array / 255.0 - 0.1307) / 0.3081
     
-    # Reshape for model input and ENSURE float32
+    # Reshape for model input and ensure float32
     input_tensor = image_array.reshape(1, 1, 28, 28).astype(np.float32)
     
     # Debug print

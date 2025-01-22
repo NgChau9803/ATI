@@ -6,7 +6,7 @@ const predictedDigitSpan = document.getElementById('predictedDigit');
 const confidenceSpan = document.getElementById('confidence');
 
 // Drawing setup
-ctx.lineWidth = 20;  // Increased line width
+ctx.lineWidth = 20;
 ctx.lineCap = 'round';
 ctx.strokeStyle = 'black';
 ctx.fillStyle = 'white';
@@ -14,6 +14,8 @@ ctx.fillStyle = 'white';
 // Fill canvas with white background
 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+let lastPredictionTime = 0;
+const PREDICTION_DEBOUNCE = 500;
 let lastX = 0;
 let lastY = 0;
 let isDrawing = false;
@@ -32,6 +34,12 @@ function draw(e) {
     ctx.stroke();
     
     [lastX, lastY] = [e.offsetX, e.offsetY];
+
+    const now = Date.now();
+    if (now - lastPredictionTime > PREDICTION_DEBOUNCE) {
+        predictDigit();
+        lastPredictionTime = now;
+    }
 }
 
 function stopDrawing() {
@@ -47,6 +55,8 @@ function clearCanvas() {
 
 async function predictDigit() {
     // Create a new canvas to process the image
+    try {
+
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = 28;
     tempCanvas.height = 28;
@@ -67,16 +77,15 @@ async function predictDigit() {
     console.log('Debug Image Data URL Length:', debugImage.length);
     console.log('Debug Image:', debugImage.substring(0, 100) + '...');
     
-    // Optional: Visually confirm the small canvas
-    const link = document.createElement('a');
-    link.href = debugImage;
-    link.download = 'debug_input.png';
-    link.click();
+    // // Optional: Visually confirm the small canvas
+    // const link = document.createElement('a');
+    // link.href = debugImage;
+    // link.download = 'debug_input.png';
+    // link.click();
     
     // Convert to base64
     const imageBase64 = tempCanvas.toDataURL('image/png');
     
-    try {
         const response = await fetch('/predict', {
             method: 'POST',
             headers: {
@@ -90,8 +99,11 @@ async function predictDigit() {
         // Log raw result for debugging
         console.log('Prediction Result:', result);
         
-        predictedDigitSpan.textContent = result.digit;
-        confidenceSpan.textContent = (result.confidence * 100).toFixed(2);
+        if (result.digit !== undefined) {
+            predictedDigitSpan.textContent = result.digit;
+            const confidence = (Math.max(...result.raw_outputs[0]) * 100).toFixed(1);
+            confidenceSpan.textContent = `${confidence}%`;
+        }
         
         // Optional: Log raw outputs
         if (result.raw_outputs) {
@@ -109,4 +121,4 @@ canvas.addEventListener('mouseup', stopDrawing);
 canvas.addEventListener('mouseout', stopDrawing);
 
 clearButton.addEventListener('click', clearCanvas);
-predictButton.addEventListener('click', predictDigit);
+// predictButton.addEventListener('click', predictDigit);
