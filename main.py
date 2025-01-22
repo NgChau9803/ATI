@@ -10,27 +10,26 @@ from torchvision import datasets, transforms
 torch.manual_seed(42)
 
 # Define hyperparameters
-BATCH_SIZE = 64
+BATCH_SIZE = 128
 LEARNING_RATE = 0.01
-EPOCHS = 10
+EPOCHS = 15
 
 # Define the neural network architecture
 class SimpleNeuralNetwork(nn.Module):
     def __init__(self):
-        super(SimpleNeuralNetwork, self).__init__()
-        # Input is 28x28 grayscale image (flattened to 784)
-        self.flatten = nn.Flatten()
+        super().__init__()
         self.network = nn.Sequential(
-            nn.Linear(28 * 28, 128),  # First hidden layer
+            nn.Linear(784, 256),
             nn.ReLU(),
-            nn.Linear(128, 64),        # Second hidden layer
+            nn.Dropout(0.2),
+            nn.Linear(256, 128),
             nn.ReLU(),
-            nn.Linear(64, 10)           # Output layer (10 digits)
+            nn.Dropout(0.2),
+            nn.Linear(128, 10)
         )
     
     def forward(self, x):
-        x = self.flatten(x)
-        return self.network(x)
+        return self.network(x.view(-1, 784))
 
 def export_model(model, output_path=None):
     # Determine the base path of the project
