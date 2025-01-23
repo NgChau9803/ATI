@@ -10,10 +10,7 @@ env/
 .venv/
 
 # Model and Data Files
-*.pth
-*.onnx
 data/
-model/
 
 # Debug and Temporary Files
 debug/

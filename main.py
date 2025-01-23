@@ -190,9 +190,44 @@ def train_advanced_model(model_path='model/advanced_mnist_model.pth'):
     
     return model, class_accuracies
 
+def export_model_to_onnx(model_path='model/advanced_mnist_model.pth', 
+                          onnx_path='model/advanced_mnist_model.onnx'):
+    """
+    Export PyTorch model to ONNX format
+    """
+    # Ensure model directory exists
+    os.makedirs('model', exist_ok=True)
+    
+    # Load the PyTorch model
+    model = AdvancedCNN()  # Use the new model class
+    model.load_state_dict(torch.load(model_path))
+    model.eval()
+
+    # Create a dummy input
+    dummy_input = torch.randn(1, 1, 28, 28)
+
+    try:
+        # Export to ONNX
+        torch.onnx.export(
+            model,
+            dummy_input,
+            onnx_path,
+            input_names=['input'],
+            output_names=['output'],
+            dynamic_axes={
+                'input': {0: 'batch_size'},
+                'output': {0: 'batch_size'}
+            },
+            opset_version=12
+        )
+        print(f"Model exported to {onnx_path}")
+    except Exception as e:
+        print(f"Model export error: {e}")
+
 def main():
     os.makedirs('model', exist_ok=True)
     model, class_accuracies = train_advanced_model()
+    export_model_to_onnx()
 
 if __name__ == "__main__":
     main()
