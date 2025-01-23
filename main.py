@@ -10,26 +10,31 @@ from torchvision import datasets, transforms
 torch.manual_seed(42)
 
 # Define hyperparameters
-BATCH_SIZE = 128
-LEARNING_RATE = 0.01
+BATCH_SIZE = 64
+LEARNING_RATE = 0.001
 EPOCHS = 15
+OPTIMIZER = optim.Adam 
 
 # Define the neural network architecture
 class SimpleNeuralNetwork(nn.Module):
     def __init__(self):
         super().__init__()
         self.network = nn.Sequential(
-            nn.Linear(784, 256),
+            nn.Conv2d(1, 32, 3, padding=1),  # [32, 28, 28]
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),  # [32, 14, 14]
+            nn.Conv2d(32, 64, 3, padding=1),  # [64, 14, 14]
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2),  # [64, 7, 7]
+            nn.Flatten(),
+            nn.Linear(64*7*7, 256),
             nn.ReLU(),
             nn.Dropout(0.2),
-            nn.Linear(256, 128),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(128, 10)
+            nn.Linear(256, 10)
         )
     
     def forward(self, x):
-        return self.network(x.view(-1, 784))
+        return self.network(x)
 
 def export_model(model, output_path=None):
     # Determine the base path of the project
@@ -81,6 +86,7 @@ def main():
 
     # Define data transformations
     transform = transforms.Compose([
+        transforms.RandomAffine(degrees=10, translate=(0.1, 0.1)),
         transforms.ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))  # MNIST mean and std
     ])
@@ -96,7 +102,10 @@ def main():
         root='./data', 
         train=False, 
         download=True, 
-        transform=transform
+        transform=transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+        ])
     )
 
     # Create data loaders

@@ -101,7 +101,7 @@ async function predictDigit() {
         
         if (result.digit !== undefined) {
             predictedDigitSpan.textContent = result.digit;
-            const confidence = (Math.max(...result.raw_outputs[0]) * 100).toFixed(1);
+            const confidence = (Math.max(...result.probabilities) * 100).toFixed(1);
             confidenceSpan.textContent = `${confidence}%`;
         }
         
