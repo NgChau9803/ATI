@@ -16,9 +16,6 @@ import torch as torch
 app = Flask(__name__)
 CORS(app)
 
-# Ensure debug directory exists
-os.makedirs('debug', exist_ok=True)
-
 def get_onnx_providers():
     available_providers = ort.get_available_providers()
     if 'CUDAExecutionProvider' in available_providers:
@@ -48,10 +45,6 @@ def preprocess_image(image_base64):
             f.write(image_base64)
         raise
     
-    # Debug: print image details
-    print("Image Mode:", image.mode)
-    print("Image Size:", image.size)
-    
     # Save original input for debugging
     image.save('debug/original_input.png')
     
@@ -73,11 +66,6 @@ def preprocess_image(image_base64):
     
     # Reshape for model input and ensure float32
     input_tensor = image_array.reshape(1, 1, 28, 28).astype(np.float32)
-    
-    # Debug print
-    print("Input Tensor Shape:", input_tensor.shape)
-    print("Input Tensor Dtype:", input_tensor.dtype)
-    print("Input Tensor Min/Max:", input_tensor.min(), input_tensor.max())
     
     return input_tensor
 
@@ -105,27 +93,9 @@ def predict():
         prediction = int(np.argmax(probabilities))
         probabilities_list = probabilities[0].tolist()
         
-        # Detailed logging
-        print("\n--- Prediction Details ---")
-        print("Raw Outputs:", outputs[0])
-        print("Full Output Array:", outputs[0][0])
-        print(f"Prediction: {prediction}")
-        
-        # Detailed probability visualization
-        plt.figure(figsize=(12, 6))
-        plt.bar(range(10), probabilities_list)
-        plt.title('Digit Prediction Probabilities')
-        plt.xlabel('Digit')
-        plt.ylabel('Probability')
-        plt.xticks(range(10))
-        for i, prob in enumerate(probabilities_list):
-            plt.text(i, prob, f'{prob:.4f}', ha='center', va='bottom')
-        plt.tight_layout()
-        plt.savefig('debug/detailed_probabilities.png')
-        plt.close()
-        
         return jsonify({
             'digit': prediction,
+            'outputs': outputs[0][0].tolist(),
             'probabilities': probabilities_list
         })
     

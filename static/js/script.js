@@ -70,67 +70,21 @@ document.addEventListener('DOMContentLoaded', () => {
         return tempCanvas.toDataURL('image/png');
     }
 
-    function predict() {
-        // Preprocess the canvas and get image data
-        const imageData = preprocessCanvas();
 
-        // Log the image data for debugging
-        console.log('Image Data URL Length:', imageData.length);
-        console.log('Image Data (first 100 chars):', imageData.substring(0, 100) + '...');
+    // Softmax function to convert raw outputs to probabilities
+    function softmax(outputs) {
+        const outputArray = Array.isArray(outputs) ? outputs : 
+                        typeof outputs === 'object' ? Object.values(outputs) : 
+                        [outputs];
+    
+        const exp = outputArray.map(x => Math.exp(x));
+        const sumExp = exp.reduce((a, b) => a + b, 0);
+        return exp.map(x => x / sumExp);
+    }      
 
-        fetch('/predict', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ image: imageData })
-        })
-        .then(response => {
-            // Log the raw response for debugging
-            console.log('Response status:', response.status);
-            console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-            return response.json();
-        })
-        .then(data => {
-            // Extensive logging of the response data
-            console.log('Full prediction data:', data);
-            
-            // Validate the response data
-            if (!data || data.digit === undefined) {
-                throw new Error('Invalid prediction response');
-            }
-
-            // Update prediction display
-            predictionDisplay.textContent = data.digit;
-
-            // Check if raw_outputs exists and is an array
-            if (data.raw_outputs && Array.isArray(data.raw_outputs) && data.raw_outputs.length > 0) {
-                updateProbabilityChart(data.raw_outputs[0]);
-            } else {
-                console.warn('No raw outputs found in the prediction data');
-                probabilityChartContainer.classList.add('hidden');
-            }
-        })
-        .catch(error => {
-            // Comprehensive error handling
-            console.error('Prediction Error:', error);
-            
-            // Detailed error message display
-            predictionDisplay.textContent = 'Error';
-            probabilityChartContainer.classList.add('hidden');
-            
-            // Optional: Show a more detailed error message
-            alert(`Prediction failed: ${error.message}`);
-        });
-    }
-
-    function updateProbabilityChart(probabilities) {
-        // Validate probabilities
-        if (!probabilities || !Array.isArray(probabilities) || probabilities.length !== 10) {
-            console.warn('Invalid probabilities:', probabilities);
-            probabilityChartContainer.classList.add('hidden');
-            return;
-        }
+    function updateProbabilityChart(rawOutputs) {
+        // Convert raw outputs to probabilities
+        const probabilities = softmax(rawOutputs);
 
         probabilityChartContainer.classList.remove('hidden');
         const ctx = document.getElementById('probabilityCanvas').getContext('2d');
@@ -146,7 +100,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 datasets: [{
                     label: 'Digit Probabilities',
                     data: probabilities,
-                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                    backgroundColor: probabilities.map((prob, index) => 
+                        index === parseInt(predictionDisplay.textContent) 
+                        ? 'rgba(59, 130, 246, 0.8)' // Highlight predicted digit
+                        : 'rgba(59, 130, 246, 0.4)'
+                    ),
                     borderColor: 'rgba(59, 130, 246, 1)',
                     borderWidth: 1
                 }]
@@ -158,11 +116,84 @@ document.addEventListener('DOMContentLoaded', () => {
                         beginAtZero: true,
                         title: {
                             display: true,
-                            text: 'Probability'
+                            text: 'Probability',
+                            font: {
+                                weight: 'bold',
+                                size: 20
+                            }
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return (value * 100).toFixed(1) + '%';
+                            }
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Digit',
+                            font: {
+                                weight: 'bold',
+                                size: 20
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return (context.parsed.y * 100).toFixed(1) + '%';
+                            }
                         }
                     }
                 }
             }
+        });
+    }
+
+    function predict() {
+        // Preprocess the canvas and get image data
+        const imageData = preprocessCanvas();
+
+        fetch('/predict', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ image: imageData })
+        })
+        .then(response => {
+            return response.json();
+        })
+        .then(data => {
+            // Validate the response data
+            if (!data || data.digit === undefined) {
+                throw new Error('Invalid prediction response');
+            }
+
+            // Update prediction display
+            predictionDisplay.textContent = data.digit;
+
+            // Check if outputs exists and is an array
+            if (data.outputs && Array.isArray(data.outputs) && data.outputs.length > 0) {
+                updateProbabilityChart(data.outputs);
+            } else {
+                console.warn('No outputs found in the prediction data');
+                probabilityChartContainer.classList.add('hidden');
+            }
+
+        })
+        .catch(error => {
+            // Comprehensive error handling
+            console.error('Prediction Error:', error);
+            
+            // Detailed error message display
+            predictionDisplay.textContent = 'Error';
+            probabilityChartContainer.classList.add('hidden');
+            
+            // Optional: Show a more detailed error message
+            alert(`Prediction failed: ${error.message}`);
         });
     }
 
