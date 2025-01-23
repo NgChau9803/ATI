@@ -8,11 +8,50 @@ import io
 import os
 import cv2
 import matplotlib
+from torch import export
 matplotlib.use('Agg') 
 import matplotlib.pyplot as plt
+import torch as torch
+
+from main import AdvancedCNN 
+
+def export_model_to_onnx(model_path='model/advanced_mnist_model.pth', 
+                          onnx_path='model/advanced_mnist_model.onnx'):
+    """
+    Export PyTorch model to ONNX format
+    """
+    # Ensure model directory exists
+    os.makedirs('model', exist_ok=True)
+    
+    # Load the PyTorch model
+    model = AdvancedCNN()  # Use the new model class
+    model.load_state_dict(torch.load(model_path))
+    model.eval()
+
+    # Create a dummy input
+    dummy_input = torch.randn(1, 1, 28, 28)
+
+    try:
+        # Export to ONNX
+        torch.onnx.export(
+            model,
+            dummy_input,
+            onnx_path,
+            input_names=['input'],
+            output_names=['output'],
+            dynamic_axes={
+                'input': {0: 'batch_size'},
+                'output': {0: 'batch_size'}
+            },
+            opset_version=12
+        )
+        print(f"Model exported to {onnx_path}")
+    except Exception as e:
+        print(f"Model export error: {e}")
 
 app = Flask(__name__)
 CORS(app)
+export_model_to_onnx()
 
 # Ensure debug directory exists
 os.makedirs('debug', exist_ok=True)
@@ -25,7 +64,7 @@ def get_onnx_providers():
 
 # Load the ONNX model
 session = ort.InferenceSession(
-    'model/mnist_model.onnx', 
+    'model/advanced_mnist_model.onnx', 
     providers=get_onnx_providers()
 )
 
