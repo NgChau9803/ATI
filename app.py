@@ -96,8 +96,12 @@ def predict():
         inputs = {session.get_inputs()[0].name: input_tensor}
         outputs = session.run(None, inputs)
         
+        logits = outputs[0]
+        probabilities = np.exp(logits) / np.sum(np.exp(logits), axis=1, keepdims=True)
+        
         # Get prediction
-        prediction = int(np.argmax(outputs[0]))
+        prediction = int(np.argmax(probabilities))
+        probabilities_list = probabilities[0].tolist()
         
         # Detailed logging
         print("\n--- Prediction Details ---")
@@ -107,13 +111,12 @@ def predict():
         
         # Detailed probability visualization
         plt.figure(figsize=(12, 6))
-        probabilities = outputs[0][0]
-        plt.bar(range(10), probabilities)
+        plt.bar(range(10), probabilities_list)
         plt.title('Digit Prediction Probabilities')
         plt.xlabel('Digit')
         plt.ylabel('Probability')
         plt.xticks(range(10))
-        for i, prob in enumerate(probabilities):
+        for i, prob in enumerate(probabilities_list):
             plt.text(i, prob, f'{prob:.4f}', ha='center', va='bottom')
         plt.tight_layout()
         plt.savefig('debug/detailed_probabilities.png')
@@ -121,7 +124,7 @@ def predict():
         
         return jsonify({
             'digit': prediction,
-            'raw_outputs': outputs[0].tolist()
+            'probabilities': probabilities_list
         })
     
     # Error handling
