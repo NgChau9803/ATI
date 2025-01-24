@@ -18,19 +18,32 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastX = 0;
     let lastY = 0;
 
+    function getCanvasCoordinates(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        return {
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
+        };
+    }
+
     function startDrawing(e) {
         isDrawing = true;
-        [lastX, lastY] = [e.offsetX, e.offsetY];
+        const pos = getCanvasCoordinates(e);
+        [lastX, lastY] = [pos.x, pos.y];
     }
 
     function draw(e) {
         if (!isDrawing) return;
+        const pos = getCanvasCoordinates(e);
         ctx.beginPath();
         ctx.moveTo(lastX, lastY);
-        ctx.lineTo(e.offsetX, e.offsetY);
+        ctx.lineTo(pos.x, pos.y);
         ctx.stroke();
-        [lastX, lastY] = [e.offsetX, e.offsetY];
+        [lastX, lastY] = [pos.x, pos.y];
     }
+
 
     function stopDrawing() {
         isDrawing = false;
