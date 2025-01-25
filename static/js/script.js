@@ -3,6 +3,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const ctx = canvas.getContext('2d');
     const predictBtn = document.getElementById('predict-btn');
     const clearBtn = document.getElementById('clear-btn');
+    const uploadBtn = document.getElementById('upload-btn');
+    const uploadInput = document.getElementById('upload-input');
     const predictionDisplay = document.getElementById('prediction');
     const probabilityChartContainer = document.getElementById('probability-chart');
     let probabilityChart = null;
@@ -103,9 +105,11 @@ document.addEventListener('DOMContentLoaded', () => {
         tempCanvas.height = 28;
         const tempCtx = tempCanvas.getContext('2d');
         
+        // Fill with white background
         tempCtx.fillStyle = 'white';
         tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
         
+        // Draw the original canvas onto the smaller canvas with high-quality scaling
         tempCtx.imageSmoothingEnabled = true;
         tempCtx.imageSmoothingQuality = 'high';
         tempCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, 28, 28);
@@ -261,6 +265,47 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function handleImageUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                // Clear canvas and draw uploaded image
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Calculate aspect ratios
+                const canvasRatio = canvas.width / canvas.height;
+                const imgRatio = img.width / img.height;
+                let drawWidth, drawHeight;
+                
+                if (imgRatio > canvasRatio) {
+                    drawWidth = canvas.width;
+                    drawHeight = canvas.width / imgRatio;
+                } else {
+                    drawHeight = canvas.height;
+                    drawWidth = canvas.height * imgRatio;
+                }
+                
+                // Center the image
+                const x = (canvas.width - drawWidth) / 2;
+                const y = (canvas.height - drawHeight) / 2;
+                
+                ctx.drawImage(img, x, y, drawWidth, drawHeight);
+                
+                // Automatically predict after upload
+                setTimeout(predict, 500);
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
     predictBtn.addEventListener('click', predict);
     clearBtn.addEventListener('click', clearCanvas);
+    uploadBtn.addEventListener('click', () => uploadInput.click());
+    uploadInput.addEventListener('change', handleImageUpload);
 });

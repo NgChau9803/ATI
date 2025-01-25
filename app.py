@@ -61,6 +61,18 @@ def preprocess_image(image_base64):
     
     # Convert to numpy array and invert (white digit on black background)
     image_array = 255 - np.array(image, dtype=np.float32)
+
+    image_array = np.array(image, dtype=np.float32)
+
+    # Apply adaptive thresholding
+    image_array = cv2.adaptiveThreshold(
+        image_array.astype(np.uint8),
+        255,
+        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY_INV,
+        11,
+        2
+    ).astype(np.float32)
     
     # Normalize using MNIST parameters (same as training)
     image_array = (image_array / 255.0 - 0.1307) / 0.3081
