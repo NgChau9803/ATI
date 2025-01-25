@@ -1,18 +1,12 @@
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 import onnxruntime as ort
-import numpy as np
 import base64
 from PIL import Image
 import io
-import os
 import cv2
-import matplotlib
-from torch import export
-from torch import export
-matplotlib.use('Agg') 
-import matplotlib.pyplot as plt
 import torch as torch
+import numpy as np
 
 app = Flask(__name__)
 CORS(app)
