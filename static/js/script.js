@@ -6,13 +6,43 @@ document.addEventListener('DOMContentLoaded', () => {
     const predictionDisplay = document.getElementById('prediction');
     const probabilityChartContainer = document.getElementById('probability-chart');
     let probabilityChart = null;
+    
+    // History variables
+    let predictionHistory = [];
+    const historyContainer = document.getElementById('history-container');
 
-    // Canvas setup
+    // Brush settings
+    let currentColor = 'black';
+    let currentSize = 15;
+
+    // Initialize canvas
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.lineWidth = 15;
+    ctx.lineWidth = currentSize;
     ctx.lineCap = 'round';
-    ctx.strokeStyle = 'black';
+    ctx.strokeStyle = currentColor;
+
+    // Brush color selection
+    document.querySelectorAll('.brush-color').forEach(button => {
+        button.addEventListener('click', () => {
+            currentColor = button.dataset.color;
+            ctx.strokeStyle = currentColor;
+            
+            // Update active state
+            document.querySelectorAll('.brush-color').forEach(btn => 
+                btn.classList.remove('ring-2', 'ring-offset-2', 'ring-blue-500'));
+            button.classList.add('ring-2', 'ring-offset-2', 'ring-blue-500');
+        });
+    });
+
+    // Brush size control
+    const brushSizeInput = document.getElementById('brushSize');
+    const brushSizeValue = document.getElementById('brushSizeValue');
+    brushSizeInput.addEventListener('input', (e) => {
+        currentSize = parseInt(e.target.value);
+        ctx.lineWidth = currentSize;
+        brushSizeValue.textContent = currentSize;
+    });
 
     let isDrawing = false;
     let lastX = 0;
@@ -44,7 +74,6 @@ document.addEventListener('DOMContentLoaded', () => {
         [lastX, lastY] = [pos.x, pos.y];
     }
 
-
     function stopDrawing() {
         isDrawing = false;
     }
@@ -62,20 +91,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (probabilityChart) {
             probabilityChart.destroy();
         }
+        
+        // Reset brush settings
+        ctx.strokeStyle = currentColor;
+        ctx.lineWidth = currentSize;
     }
 
     function preprocessCanvas() {
-        // Create a new canvas for preprocessing
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = 28;
         tempCanvas.height = 28;
         const tempCtx = tempCanvas.getContext('2d');
         
-        // Fill with white background
         tempCtx.fillStyle = 'white';
         tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
         
-        // Draw the original canvas onto the smaller canvas with high-quality scaling
         tempCtx.imageSmoothingEnabled = true;
         tempCtx.imageSmoothingQuality = 'high';
         tempCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, 28, 28);
@@ -83,8 +113,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return tempCanvas.toDataURL('image/png');
     }
 
-
-    // Softmax function to convert raw outputs to probabilities
     function softmax(outputs) {
         const outputArray = Array.isArray(outputs) ? outputs : 
                         typeof outputs === 'object' ? Object.values(outputs) : 
@@ -93,10 +121,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const exp = outputArray.map(x => Math.exp(x));
         const sumExp = exp.reduce((a, b) => a + b, 0);
         return exp.map(x => x / sumExp);
-    }      
+    }
 
     function updateProbabilityChart(rawOutputs) {
-        // Convert raw outputs to probabilities
         const probabilities = softmax(rawOutputs);
 
         probabilityChartContainer.classList.remove('hidden');
@@ -115,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     data: probabilities,
                     backgroundColor: probabilities.map((prob, index) => 
                         index === parseInt(predictionDisplay.textContent) 
-                        ? 'rgba(59, 130, 246, 0.8)' // Highlight predicted digit
+                        ? 'rgba(59, 130, 246, 0.8)'
                         : 'rgba(59, 130, 246, 0.4)'
                     ),
                     borderColor: 'rgba(59, 130, 246, 1)',
@@ -165,8 +192,39 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function updatePredictionHistory(imageData, prediction, confidence) {
+        const historyItem = {
+            image: imageData,
+            prediction: prediction,
+            confidence: (confidence * 100).toFixed(1) + '%',
+            timestamp: new Date().toLocaleTimeString()
+        };
+
+        predictionHistory.unshift(historyItem);
+        if (predictionHistory.length > 15) {
+            predictionHistory.pop();
+        }
+
+        historyContainer.innerHTML = '';
+
+        predictionHistory.forEach(item => {
+            const historyElement = document.createElement('div');
+            historyElement.className = 'history-item bg-gray-50 p-3 rounded-lg cursor-pointer';
+            historyElement.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <img src="${item.image}" class="w-12 h-12 object-contain bg-white p-1 rounded border" alt="Drawn digit">
+                    <div>
+                        <div class="font-semibold text-blue-600">Prediction: ${item.prediction}</div>
+                        <div class="text-sm text-gray-500">${item.confidence}</div>
+                        <div class="text-xs text-gray-400">${item.timestamp}</div>
+                    </div>
+                </div>
+            `;
+            historyContainer.appendChild(historyElement);
+        });
+    }
+
     function predict() {
-        // Preprocess the canvas and get image data
         const imageData = preprocessCanvas();
 
         fetch('/predict', {
@@ -176,19 +234,14 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             body: JSON.stringify({ image: imageData })
         })
-        .then(response => {
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
-            // Validate the response data
             if (!data || data.digit === undefined) {
                 throw new Error('Invalid prediction response');
             }
 
-            // Update prediction display
             predictionDisplay.textContent = data.digit;
 
-            // Check if outputs exists and is an array
             if (data.outputs && Array.isArray(data.outputs) && data.outputs.length > 0) {
                 updateProbabilityChart(data.outputs);
             } else {
@@ -196,16 +249,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 probabilityChartContainer.classList.add('hidden');
             }
 
+            // Update prediction history
+            const confidence = Math.max(...data.probabilities);
+            updatePredictionHistory(imageData, data.digit, confidence);
         })
         .catch(error => {
-            // Comprehensive error handling
             console.error('Prediction Error:', error);
-            
-            // Detailed error message display
             predictionDisplay.textContent = 'Error';
             probabilityChartContainer.classList.add('hidden');
-            
-            // Optional: Show a more detailed error message
             alert(`Prediction failed: ${error.message}`);
         });
     }
